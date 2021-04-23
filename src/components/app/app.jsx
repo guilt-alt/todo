@@ -1,29 +1,128 @@
+import { Component } from 'react';
+
 import AppHeader from '../app-header';
 import SearchPanel from '../search-panel';
 import TodoList from '../todo-list/todo-list';
 import ItemStatusFilter from '../item-status-filter';
+import AddForm from '../add-form';
 
 import './app.css'
 
-const App = () => {
+const LABELS = [
+  'Drink Coffee',
+  'Make React App',
+  'Have a Lunch',
+  'Make Love',
+  'Have Fun',
+  'Take a Cake',
+  'Drink Vodka',
+  'Eat Selyodka',
+  'Fuck Pilotka'
+];
 
-  const todoData =  [
-    { label: 'Drink Coffee', important: true, id: 1 },
-    { label: 'Make React App', important: true, id: 2 },
-    { label: 'Have a Lunch', important: false, id: 3 },
-  ];
+const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-  return (
-    <div className="todo-app">
-      <AppHeader toDo={1} done={3} />
-      <div className="top-panel d-flex">
-        <SearchPanel />
-        <ItemStatusFilter />
+const getRandomInt = (min, max) =>
+  Boolean(Math.floor(Math.random() * (Math.floor(max) - Math.ceil(min) + 1)) + Math.ceil(min));
+
+export default class App extends Component {
+
+  state = {
+    todoData: new Array(3)
+      .fill()
+      .map((_, idx) => this.createTodoItem(idx))
+  };
+
+  createTodoItem(id) {
+    return {
+      label: getRandomItem(LABELS),
+      important: getRandomInt(0, 1),
+      done: getRandomInt(0, 1),
+      id
+    }
+  };
+
+  deleteItem = (id) => {
+    this.setState(({ todoData }) => {
+      const idx = todoData.findIndex((el) => el.id === id);
+
+      const newArr = [...todoData.slice(0, idx), ...todoData.slice(idx + 1)];
+
+      return {
+        todoData: newArr
+      };
+    });
+  };
+
+  addItem = (title) => {
+    this.setState(({ todoData }) => {
+      const id = todoData[todoData.length - 1].id + 1;
+
+      const newArr = [
+        ...todoData,
+        { ...this.createTodoItem(id), title, important: false, done: false },
+      ];
+
+      return {
+        todoData: newArr
+      };
+    });
+  };
+
+  toggleProperty(arr, id, propName) {
+    const idx = arr.findIndex((el) => el.id === id);
+    const oldItem = arr[idx];
+
+    const newItem = { ...oldItem, [propName]: !oldItem[propName] };
+
+    return [
+      ...arr.slice(0, idx),
+      newItem,
+      ...arr.slice(idx + 1)
+    ];
+  };
+
+  onToggleDone = (id) => {
+    this.setState(({ todoData }) => {
+      return {
+        todoData: this.toggleProperty(todoData, id, 'done')
+      };
+    });
+  };
+
+  onToggleImportant = (id) => {
+    this.setState(({ todoData }) => {
+      return {
+        todoData: this.toggleProperty(todoData, id, 'important')
+      };
+    });
+  };
+
+  render() {
+    const { todoData } = this.state;
+    const doneCount = todoData.filter((el) => el.done).length;
+    const todoCount = todoData.length - doneCount;
+
+    return (
+      <div className="todo-app">
+        <AppHeader toDo={todoCount} done={doneCount} />
+        <div className="top-panel d-flex">
+          <SearchPanel />
+          <ItemStatusFilter />
+        </div>
+
+        <TodoList
+          todos={todoData}
+          onDeleted={this.deleteItem}
+          onToggleDone={this.onToggleDone}
+          onToggleImportant={this.onToggleImportant}
+        />
+
+        <AddForm
+          todos={todoData}
+          onAdded={this.addItem}
+        />
       </div>
-
-      <TodoList todos={todoData} />
-    </div>
-  );
+    );
+  }
 };
-
-export default App;
